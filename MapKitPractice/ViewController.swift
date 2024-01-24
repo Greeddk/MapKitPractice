@@ -10,7 +10,7 @@ import MapKit
 import CoreLocation
 
 class ViewController: UIViewController {
-
+    
     @IBOutlet var mapKit: MKMapView!
     
     let theaterList = TheaterList().mapAnnotations
@@ -27,11 +27,24 @@ class ViewController: UIViewController {
         locationManager.delegate = self
         
         checkDeviceLocationAuthrization()
-
+        
     }
-
+    
+    
     @IBAction func filterButtonClicked(_ sender: UIButton) {
-        showActionSheet()
+        
+        let actionList = Theater.TheaterType.allCases
+        
+        showActionSheet(actionList: actionList) { action in
+            
+            self.deleteAnnotation()
+
+            let result = action.title == "전체보기" ? self.theaterList : self.theaterList.filter({ $0.type == action.title })
+            for item in result {
+                self.setMap(item: item)
+            }
+        }
+        
     }
     
     @IBAction func curretLocationClicked(_ sender: UIButton) {
@@ -42,49 +55,17 @@ class ViewController: UIViewController {
 
 extension ViewController {
     
-    func showActionSheet() {
+    func showActionSheet(actionList: [Theater.TheaterType], completionHandler: @escaping (UIAlertAction) -> Void) {
         
         let sheet = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
-        
-        let mega = UIAlertAction(title: "메가박스", style: .default) { _ in
-            
-            self.deleteAnnotation()
-            for item in self.theaterList.filter({ $0.type == "메가박스" }) {
-                self.setMap(item: item)
+        for item in actionList {
+            let alertAction = UIAlertAction(title: item.rawValue, style: .default) { value in
+                completionHandler(value)
             }
-            
+            sheet.addAction(alertAction)
         }
-        let lotte = UIAlertAction(title: "롯데시네마", style: .default) { _ in
-            
-            self.deleteAnnotation()
-            for item in self.theaterList.filter({ $0.type == "롯데시네마"}) {
-                self.setMap(item: item)
-            }
-            
-        }
-        let cgv = UIAlertAction(title: "CGV", style: .default) { _ in
-            
-            self.deleteAnnotation()
-            for item in self.theaterList.filter({ $0.type == "CGV"}) {
-                self.setMap(item: item)
-            }
-            
-        }
-        let all = UIAlertAction(title: "전체보기", style: .default) { _ in
-            
-            self.deleteAnnotation()
-            for item in self.theaterList {
-                self.setMap(item: item)
-            }
-            
-        }
-        let cancel = UIAlertAction(title: "취소", style: .cancel)
-        
-        sheet.addAction(mega)
-        sheet.addAction(lotte)
-        sheet.addAction(cgv)
-        sheet.addAction(all)
-        sheet.addAction(cancel)
+        let alertAction = UIAlertAction(title: "취소", style: .cancel)
+        sheet.addAction(alertAction)
         
         present(sheet, animated: true)
         
@@ -116,7 +97,7 @@ extension ViewController {
         
         let currentLocation = locationManager.location?.coordinate
         let sesacCoordinate = CLLocationCoordinate2D(latitude: 39.01944, longitude: 125.75472)
-
+        
         let region = MKCoordinateRegion(center: currentLocation ?? sesacCoordinate, latitudinalMeters: 10000, longitudinalMeters: 10000)
         
         mapKit.setRegion(region, animated: true)

@@ -8,11 +8,14 @@
 import Foundation
 
 struct Theater {
-    enum TheaterType: String {
+    
+    enum TheaterType: String, CaseIterable {
         case lotte = "롯데시네마"
         case mega = "메가박스"
         case cgv = "CGV"
+        case all = "전체보기"
     }
+    
     var type: TheaterType.RawValue
     var location: String
     var latitude: Double
