@@ -15,17 +15,27 @@ class ViewController: UIViewController {
     
     let theaterList = TheaterList().mapAnnotations
     
+    let locationManager = CLLocationManager()
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
         for item in theaterList {
             self.setMap(item: item)
         }
+        
+        locationManager.delegate = self
+        
+        checkDeviceLocationAuthrization()
 
     }
 
     @IBAction func filterButtonClicked(_ sender: UIButton) {
         showActionSheet()
+    }
+    
+    @IBAction func curretLocationClicked(_ sender: UIButton) {
+        findMyCoordinate()
     }
     
 }
@@ -102,8 +112,119 @@ extension ViewController {
         
     }
     
+    func findMyCoordinate() {
+        
+        let currentLocation = locationManager.location?.coordinate
+        let sesacCoordinate = CLLocationCoordinate2D(latitude: 39.01944, longitude: 125.75472)
+
+        let region = MKCoordinateRegion(center: currentLocation ?? sesacCoordinate, latitudinalMeters: 10000, longitudinalMeters: 10000)
+        
+        mapKit.setRegion(region, animated: true)
+        
+        let annotation = MKPointAnnotation()
+        annotation.coordinate = currentLocation ?? sesacCoordinate
+        annotation.title = "요기있지~"
+        
+        mapKit.addAnnotation(annotation)
+        
+        locationManager.stopUpdatingLocation()
+        
+    }
+    
 }
 
 extension ViewController {
     
+    func checkDeviceLocationAuthrization() {
+        
+        DispatchQueue.global().async {
+            
+            if CLLocationManager.locationServicesEnabled() {
+                
+                let authorization: CLAuthorizationStatus
+                
+                if #available(iOS 14.0, *) {
+                    authorization = self.locationManager.authorizationStatus
+                } else {
+                    authorization = CLLocationManager.authorizationStatus()
+                }
+                
+                DispatchQueue.main.async {
+                    self.checkCurrentLocationAuthorization(status: authorization)
+                }
+                
+            } else {
+                
+                print("위치 권한을 켜주세욤 ㅠㅠ")
+            }
+            
+            self.locationManager.stopUpdatingLocation()
+            
+        }
+        
+    }
+    
+    func checkCurrentLocationAuthorization(status: CLAuthorizationStatus) {
+        
+        switch status {
+        case .notDetermined:
+            print("notDetermined")
+            
+            locationManager.desiredAccuracy = kCLLocationAccuracyBest
+            locationManager.requestWhenInUseAuthorization()
+            
+        case .denied:
+            showAlert()
+            
+            self.findMyCoordinate()
+        case .authorizedWhenInUse:
+            print("authorezedWhenInUse")
+            locationManager.startUpdatingLocation()
+            
+            self.findMyCoordinate()
+        default:
+            print("Authorization Error")
+            
+        }
+        
+    }
+    
+    func showAlert() { //권한이 필요하니 설정으로 이동시켜주는 알러트
+        
+        let alert = UIAlertController(title: "권한이 필요합니다", message: "위치 서비스를 사용하기 위해서는 설정에서 권한이 필요합니다.", preferredStyle: .alert)
+        
+        let goSetting = UIAlertAction(title: "확인", style: .default) { _ in
+            
+            if let setting = URL(string: UIApplication.openSettingsURLString) {
+                UIApplication.shared.open(setting)
+            } else {
+                print("setting 오류")
+            }
+            
+        }
+        
+        let cancel = UIAlertAction(title: "취소", style: .cancel)
+        
+        alert.addAction(goSetting)
+        alert.addAction(cancel)
+        
+        present(alert, animated: true)
+        
+    }
+    
+}
+
+extension ViewController: CLLocationManagerDelegate {
+    
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        print(locations)
+    }
+    
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        
+    }
+    
+    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        checkDeviceLocationAuthrization()
+    }
 }
